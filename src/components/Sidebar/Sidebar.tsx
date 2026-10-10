@@ -8,6 +8,10 @@ import { useStore } from "@/state/store";
 import type { RenderMode, ViarnaDoc } from "@/model/types";
 import { Section } from "@/components/common/Section";
 import { Slider, Segmented, ColorField, Toggle } from "@/components/common/fields";
+import { BackdropField } from "@/components/common/BackdropField";
+import { ExportPanel } from "@/components/common/ExportPanel";
+import { exporters, stamp } from "@/lib/export/registry";
+import { downloadBlob } from "@/lib/svg/download";
 import { renderSvg } from "@/lib/svg/serialize";
 import { copySvg, downloadSVG, downloadJSON, slugify } from "@/lib/svg/download";
 import "./Sidebar.css";
@@ -24,11 +28,12 @@ export default function Sidebar() {
   const mirror = useStore((s) => s.mirror);
   const uniformSize = useStore((s) => s.uniformSize);
   const stageColor = useStore((s) => s.stageColor);
+  const stageGradient = useStore((s) => s.stageGradient);
+  const setStageBackdrop = useStore((s) => s.setStageBackdrop);
   const viewMode = useStore((s) => s.viewMode);
   const render3d = useStore((s) => s.render3d);
   const setMirror = useStore((s) => s.setMirror);
   const setUniformSize = useStore((s) => s.setUniformSize);
-  const setStageColor = useStore((s) => s.setStageColor);
   const setRender3d = useStore((s) => s.setRender3d);
   const setParams = useStore((s) => s.setParams);
   const addBlob = useStore((s) => s.addBlob);
@@ -144,7 +149,27 @@ export default function Sidebar() {
             value={params.color}
             onChange={(color) => setParams({ color })}
           />
-          <ColorField label="Background" value={stageColor} onChange={setStageColor} />
+          <Segmented
+            label="Spin"
+            value={render3d.spin}
+            options={[
+              { value: "left" as const, label: "↺ Left" },
+              { value: "off" as const, label: "Off" },
+              { value: "right" as const, label: "Right ↻" },
+            ]}
+            onChange={(spin) => setRender3d({ spin })}
+          />
+          {render3d.spin !== "off" && (
+            <Slider
+              label="Spin speed"
+              value={render3d.spinRpm}
+              min={1}
+              max={60}
+              step={0.5}
+              suffix=" rpm"
+              onChange={(spinRpm) => setRender3d({ spinRpm })}
+            />
+          )}
           <Slider
             label="Detail"
             value={render3d.detail}
@@ -180,7 +205,13 @@ export default function Sidebar() {
       <Section title="Editing">
         <Toggle label="Mirror across center" checked={mirror} onChange={setMirror} />
         <Toggle label="Uniform size" checked={uniformSize} onChange={setUniformSize} />
-        <ColorField label="Stage color" value={stageColor} onChange={setStageColor} />
+      </Section>
+
+      <Section title="Stage">
+        <BackdropField
+          value={{ ...stageGradient, from: stageColor }}
+          onChange={setStageBackdrop}
+        />
       </Section>
 
       {!is3d && (
@@ -378,6 +409,34 @@ export default function Sidebar() {
           </div>
           <p className="hint">Paste straight into Figma as a vector, or open the file back up later.</p>
         </Section>
+      )}
+
+      {is3d && (
+        <ExportPanel
+          name="viarna-3d"
+          getExporter={() => exporters.three}
+          loopSeconds={render3d.spin !== "off" && render3d.spinRpm > 0 ? 60 / render3d.spinRpm : null}
+          loopHint="With spin on, one turn loops seamlessly."
+        >
+          <button
+            className="mini-btn"
+            onClick={async () => {
+              const ex = exporters.three;
+              if (ex) downloadBlob(`viarna-3d-${stamp()}.glb`, await ex.glb());
+            }}
+          >
+            3D model (.glb)
+          </button>
+          <button
+            className="mini-btn"
+            onClick={() => {
+              const ex = exporters.three;
+              if (ex) downloadBlob(`viarna-3d-${stamp()}.stl`, ex.stl());
+            }}
+          >
+            Print-ready (.stl)
+          </button>
+        </ExportPanel>
       )}
     </aside>
   );

@@ -12,6 +12,7 @@ import { useStore } from "@/state/store";
 import { computeMetaball } from "@/lib/metaball";
 import { buildArtSpec, stageFrame, textureFilterEl } from "@/lib/svg/serialize";
 import { dist } from "@/lib/geometry";
+import { backdropCss } from "@/lib/backdrop";
 import "./Canvas.css";
 
 type DragKind = "move" | "resize";
@@ -29,6 +30,7 @@ export default function Canvas() {
   const updateBlob = useStore((s) => s.updateBlob);
   const setStageSize = useStore((s) => s.setStageSize);
   const stageColor = useStore((s) => s.stageColor);
+  const stageGradient = useStore((s) => s.stageGradient);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -128,12 +130,14 @@ export default function Canvas() {
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
     >
-      {/* A solid backdrop (Figma-style). When the export background is a solid
+      {/* A solid or gradient backdrop (Figma-style). When the export background is a solid
           colour it wins so the preview matches the export; otherwise the art
           floats on the editor's stage colour and still exports transparent. */}
       <div
         className="stage"
-        style={{ background: scene.params.background ?? stageColor }}
+        style={{
+          background: scene.params.background ?? backdropCss({ ...stageGradient, from: stageColor }),
+        }}
       >
         <svg
           ref={svgRef}

@@ -207,3 +207,18 @@
   color: var(--text-faint);
   line-height: 1.4;
 }
+
+/* export */
+.export-extra {
+  flex-wrap: wrap;
+}
+.export-error {
+  color: var(--danger);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+.sidebar-foot {
+  padding: 10px 18px 18px;
+}

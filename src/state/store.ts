@@ -12,7 +12,8 @@
  *    position across the stage's vertical centreline, so a V pulls apart
  *    symmetrically. Blobs sitting on the centreline stay locked to it.
  *  - `uniformSize`: resizing any blob resizes all of them together.
- *  - `stageColor`: the editor's backdrop colour behind the art. Purely a
+ *  - `stageColor` (+ `stageGradient`): the editor's backdrop behind the art —
+ *    solid or a linear/radial gradient. Purely a
  *    viewing preference (like Figma's grey canvas) — it is never exported, so
  *    a shape can still be copied out on a transparent background.
  */
@@ -20,9 +21,10 @@ import { create } from "zustand";
 import type { Blob, Link, RenderParams, Scene } from "@/model/types";
 import { defaultScene, newBlob, nextId } from "@/model/defaults";
 import { clamp } from "@/lib/geometry";
+import type { Backdrop } from "@/lib/backdrop";
 
 /** Which renderer the workspace shows. */
-export type ViewMode = "2d" | "3d";
+export type ViewMode = "2d" | "3d" | "orbit" | "glass";
 
 /** Look controls for the 3D (Three.js / R3F) blobular renderer. */
 export interface Render3D {
@@ -32,6 +34,10 @@ export interface Render3D {
   roughness: number;
   /** PBR metalness, 0 (dielectric) … 1 (metal). */
   metalness: number;
+  /** Continuous turntable spin around the vertical axis. */
+  spin: "off" | "left" | "right";
+  /** Spin speed, revolutions per minute. */
+  spinRpm: number;
 }
 
 interface ViarnaState {
@@ -40,6 +46,8 @@ interface ViarnaState {
   mirror: boolean;
   uniformSize: boolean;
   stageColor: string;
+  /** Gradient part of the stage backdrop; `stageColor` is its start colour. */
+  stageGradient: Omit<Backdrop, "from">;
   viewMode: ViewMode;
   render3d: Render3D;
 
@@ -47,6 +55,7 @@ interface ViarnaState {
   setMirror: (on: boolean) => void;
   setUniformSize: (on: boolean) => void;
   setStageColor: (color: string) => void;
+  setStageBackdrop: (patch: Partial<Backdrop>) => void;
   setViewMode: (mode: ViewMode) => void;
   setRender3d: (patch: Partial<Render3D>) => void;
 
@@ -88,13 +97,19 @@ export const useStore = create<ViarnaState>((set) => ({
   mirror: false,
   uniformSize: false,
   stageColor: DEFAULT_STAGE_COLOR,
+  stageGradient: { type: "solid", to: "#cfd6e6", angle: 180 },
   viewMode: "2d",
-  render3d: { detail: 64, roughness: 0.3, metalness: 0.1 },
+  render3d: { detail: 64, roughness: 0.3, metalness: 0.1, spin: "off", spinRpm: 8 },
 
   select: (id) => set({ selectedId: id }),
   setMirror: (on) => set({ mirror: on }),
   setUniformSize: (on) => set({ uniformSize: on }),
   setStageColor: (color) => set({ stageColor: color }),
+  setStageBackdrop: ({ from, ...rest }) =>
+    set((s) => ({
+      stageColor: from ?? s.stageColor,
+      stageGradient: { ...s.stageGradient, ...rest },
+    })),
   setViewMode: (mode) => set({ viewMode: mode }),
   setRender3d: (patch) =>
     set((s) => {
@@ -102,6 +117,7 @@ export const useStore = create<ViarnaState>((set) => ({
       next.detail = clamp(Math.round(next.detail), 24, 160);
       next.roughness = clamp(next.roughness, 0, 1);
       next.metalness = clamp(next.metalness, 0, 1);
+      next.spinRpm = clamp(next.spinRpm, 0, 120);
       return { render3d: next };
     }),
 
