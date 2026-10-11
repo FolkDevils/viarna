@@ -43,8 +43,13 @@ export function createGlassMaterial(): ShaderMaterial {
       uThick: { value: 0.3 },
       uRoll: { value: 0.5 },
       uPhase: { value: 0 },
+      uSeparation: { value: 1 },
+      uOrganic: { value: 0.5 },
+      uSwell: { value: 0.5 },
       uJitA: { value: new Float32Array(MAX_STRANDS * 4) },
-      uJitB: { value: new Float32Array(MAX_STRANDS * 2) },
+      uJitB: { value: new Float32Array(MAX_STRANDS * 4) },
+      uJitC: { value: new Float32Array(MAX_STRANDS * 4) },
+      uJitD: { value: new Float32Array(MAX_STRANDS * 4) },
     },
     vertexShader: /* glsl */ `
       ${RIBBON_VERTEX}
@@ -106,7 +111,9 @@ export function createGlassMaterial(): ShaderMaterial {
         float ring = vUv.y * 6.2831;
         float streak = pow(abs(cos(ring * 2.0 + 0.6)), 28.0) * 0.8
                      + pow(abs(cos(ring * 3.0 + 1.9)), 60.0) * 0.6;
-        streak *= uInner * smoothstep(0.08, 0.6, g);
+        // Fade out right at the silhouette, where thin triangles would
+        // turn the bands into a sawtooth.
+        streak *= uInner * smoothstep(0.08, 0.6, g) * (1.0 - smoothstep(0.72, 0.92, g));
         col = mix(col, uRim * 0.85, streak * 0.8);
         a = max(a, a + streak * 0.35);
 

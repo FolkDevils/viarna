@@ -20,13 +20,16 @@ const SHAPE_SLIDERS: { key: NumKey; label: string; min: number; max: number; ste
   { key: "amplitude", label: "Wave height", min: 0, max: 3, step: 0.01 },
   { key: "waves", label: "Waves", min: 0.25, max: 6, step: 0.05 },
   { key: "depth", label: "Depth swing", min: 0, max: 3, step: 0.01 },
-  { key: "spread", label: "Bundle spread", min: 0, max: 2, step: 0.01 },
+  { key: "separation", label: "Separation", min: 0, max: 4, step: 0.01 },
+  { key: "variation", label: "Individuality", min: 0, max: 1, step: 0.01 },
+  { key: "organic", label: "Organic", min: 0, max: 1, step: 0.01 },
+  { key: "swell", label: "Thickness swell", min: 0, max: 1, step: 0.01 },
+  { key: "spread", label: "Bundle wind", min: 0, max: 2, step: 0.01 },
   { key: "twist", label: "Bundle twist", min: -4, max: 4, step: 0.05 },
   { key: "width", label: "Ribbon width", min: 0.02, max: 1.5, step: 0.01 },
   { key: "thickness", label: "Ribbon thickness", min: 0.005, max: 1.5, step: 0.005 },
   { key: "roll", label: "Ribbon roll", min: -4, max: 4, step: 0.05 },
   { key: "length", label: "Length", min: 2, max: 30, step: 0.1 },
-  { key: "variation", label: "Variation", min: 0, max: 1, step: 0.01 },
 ];
 
 export default function GlassSidebar() {

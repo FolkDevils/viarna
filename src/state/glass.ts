@@ -16,7 +16,13 @@ export interface GlassShape {
   waves: number;
   /** How far the wave swings toward/away from camera (0 = flat wave). */
   depth: number;
-  /** Radius the strands are bundled around the main wave. */
+  /** How far strands fan apart (vertically, and a little in depth). */
+  separation: number;
+  /** Extra harmonic + length warp, 0 = pure sine, 1 = very organic. */
+  organic: number;
+  /** How much width/thickness swell and pinch along each strand, 0..1. */
+  swell: number;
+  /** Radius the strands are wound around each other (bundle). */
   spread: number;
   /** Turns the bundle twists along its length. */
   twist: number;
@@ -26,7 +32,7 @@ export interface GlassShape {
   thickness: number;
   /** Turns each ribbon rolls about its own axis along the length. */
   roll: number;
-  /** Per-strand randomness, 0..1. */
+  /** How different each strand is (waves, height, speed, size), 0..1. */
   variation: number;
   seed: number;
 }
@@ -61,7 +67,7 @@ const BG: Backdrop = { type: "solid", from: "#fbfcfe", to: "#e6edf7", angle: 180
 export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; look: Omit<GlassLook, "backdrop"> }> = {
   // Pale, iridescent, mostly clear (reference 1).
   clear: {
-    shape: { strands: 3, amplitude: 1.9, waves: 2.5, depth: 1.1, spread: 0.6, twist: 0.9, width: 0.75, thickness: 0.45, roll: 0.6, variation: 0.4 },
+    shape: { strands: 3, amplitude: 1.5, waves: 2.3, depth: 1.1, separation: 1.3, organic: 0.6, swell: 0.55, spread: 0.15, twist: 0.4, width: 0.7, thickness: 0.4, roll: 0.5, variation: 0.75 },
     look: {
       tint: "#eef3ff",
       rim: "#4f7fe0",
@@ -77,7 +83,7 @@ export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; lo
   },
   // Saturated cobalt, thicker glass (reference 2).
   azure: {
-    shape: { strands: 5, amplitude: 2, waves: 2.2, depth: 1.6, spread: 0.8, twist: 1.1, width: 0.85, thickness: 0.55, roll: 0.6, variation: 0.5 },
+    shape: { strands: 5, amplitude: 1.7, waves: 2, depth: 1.5, separation: 1.2, organic: 0.6, swell: 0.55, spread: 0.3, twist: 0.6, width: 0.8, thickness: 0.5, roll: 0.5, variation: 0.6 },
     look: {
       tint: "#c2dcff",
       rim: "#1d62e6",
@@ -93,7 +99,7 @@ export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; lo
   },
   // Cool aqua-blue bundle (references 3 & 4).
   aqua: {
-    shape: { strands: 7, amplitude: 1.6, waves: 3, depth: 0.5, spread: 0.45, twist: 0.4, width: 0.6, thickness: 0.38, roll: 0.3, variation: 0.35 },
+    shape: { strands: 6, amplitude: 1.3, waves: 2.8, depth: 0.6, separation: 0.75, organic: 0.5, swell: 0.5, spread: 0.15, twist: 0.3, width: 0.55, thickness: 0.34, roll: 0.3, variation: 0.5 },
     look: {
       tint: "#dff1fa",
       rim: "#2f7fb8",
@@ -116,6 +122,9 @@ const defaultShape = (): GlassShape => ({
   waves: 1.6,
   depth: 0.9,
   spread: 0.32,
+  separation: 1.2,
+  organic: 0.6,
+  swell: 0.5,
   twist: 0.6,
   width: 0.34,
   thickness: 0.12,
@@ -157,6 +166,9 @@ export const useGlass = create<GlassState>((set) => ({
       n.waves = clamp(n.waves, 0.25, 6);
       n.depth = clamp(n.depth, 0, 3);
       n.spread = clamp(n.spread, 0, 2);
+      n.separation = clamp(n.separation, 0, 4);
+      n.organic = clamp(n.organic, 0, 1);
+      n.swell = clamp(n.swell, 0, 1);
       n.twist = clamp(n.twist, -4, 4);
       n.width = clamp(n.width, 0.02, 1.5);
       n.thickness = clamp(n.thickness, 0.005, 1.5);
