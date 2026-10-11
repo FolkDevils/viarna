@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import { clamp } from "@/lib/geometry";
 import type { Backdrop } from "@/lib/backdrop";
+import { BRAND, BRAND_BACKDROPS, BRAND_STOPS } from "@/lib/brand";
 
 export interface GlassShape {
   strands: number;
@@ -37,80 +38,87 @@ export interface GlassShape {
   seed: number;
 }
 
+/** Physical glass parameters (see `lib/glass/material.ts`). */
 export interface GlassLook {
-  /** Colour seen face-on through the glass. */
-  tint: string;
-  /** Colour at grazing angles / the edges. */
-  rim: string;
+  /** Glass colour: what white light becomes after 1/density units of glass. */
+  color: string;
+  /** How fast colour builds up with thickness — thin faces stay pale. */
+  density: number;
+  /** Colour added each time light bounces inside — saturates edges and streaks. */
+  bounceTint: number;
+  /** Index of refraction (glass ≈ 1.5). Higher bends more, traps more light. */
+  ior: number;
+  /** Red/green/blue refraction split (rainbow fringes), 0..1. */
+  dispersion: number;
+  /** Surface reflection strength; 1 = physically correct. */
+  reflection: number;
+  /** Thin-film rainbow on the reflections, 0..1. */
+  sheen: number;
+  /** How far behind the glass the stage sits — more = stronger bending. */
+  distortion: number;
+  /** Studio softbox colour. */
   highlight: string;
-  /** Face-on opacity (how clear the glass is). */
-  clarity: number;
-  /** Opacity at the edges. */
-  rimStrength: number;
-  /** Fresnel falloff exponent — higher = thinner rims. */
-  fresnel: number;
-  /** Crisp outline at the silhouette, 0..1. */
-  edgeLine: number;
-  /** Thin-film rainbow sheen, 0..1. */
-  iridescence: number;
-  /** Specular streaks from the virtual softboxes, 0..1. */
-  specular: number;
-  /** Internal reflection streaks running along the tubes, 0..1. */
-  inner: number;
+  /** Softbox brightness. */
+  lights: number;
+  /** Studio contrast: 0 = evenly lit white room, 1 = dark room + softboxes. */
+  studio: number;
   backdrop: Backdrop;
 }
 
-export type GlassPreset = "clear" | "azure" | "aqua";
+export type GlassPreset = "viarna" | "deep" | "energy";
 
-const BG: Backdrop = { type: "solid", from: "#fbfcfe", to: "#e6edf7", angle: 180 };
+const BG = (): Backdrop => ({ ...BRAND_BACKDROPS.white.backdrop });
 
 export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; look: Omit<GlassLook, "backdrop"> }> = {
-  // Pale, iridescent, mostly clear (reference 1).
-  clear: {
-    shape: { strands: 3, amplitude: 1.5, waves: 2.3, depth: 1.1, separation: 1.3, organic: 0.6, swell: 0.55, spread: 0.15, twist: 0.4, width: 0.7, thickness: 0.4, roll: 0.5, variation: 0.75 },
+  // Clear Viarna Blue glass, tuned against the brand reference render.
+  viarna: {
+    shape: { strands: 3, length: 28.5, amplitude: 0.77, waves: 2.3, depth: 3, spread: 0.52, separation: 0.25, organic: 0.6, swell: 1, twist: 1.3, width: 0.9, thickness: 0.715, roll: 0, variation: 1, seed: 7 },
     look: {
-      tint: "#eef3ff",
-      rim: "#4f7fe0",
-      highlight: "#ffffff",
-      clarity: 0.1,
-      rimStrength: 0.95,
-      fresnel: 1.7,
-      edgeLine: 0.95,
-      iridescence: 0.5,
-      specular: 0.9,
-      inner: 0.5,
+      color: BRAND.blue,
+      density: 0.1,
+      bounceTint: 0.3,
+      ior: 1.5,
+      dispersion: 0.35,
+      reflection: 1,
+      sheen: 0.15,
+      distortion: 2,
+      highlight: BRAND.white,
+      lights: 1,
+      studio: 0.75,
     },
   },
-  // Saturated cobalt, thicker glass (reference 2).
-  azure: {
-    shape: { strands: 5, amplitude: 1.7, waves: 2, depth: 1.5, separation: 1.2, organic: 0.6, swell: 0.55, spread: 0.3, twist: 0.6, width: 0.8, thickness: 0.5, roll: 0.5, variation: 0.6 },
+  // Thicker Deep Blue glass.
+  deep: {
+    shape: { strands: 5, length: 20, amplitude: 1.7, waves: 2, depth: 1.5, separation: 1.2, organic: 0.6, swell: 0.55, spread: 0.3, twist: 0.6, width: 0.8, thickness: 0.5, roll: 0.5, variation: 0.6 },
     look: {
-      tint: "#c2dcff",
-      rim: "#1d62e6",
-      highlight: "#ffffff",
-      clarity: 0.22,
-      rimStrength: 1,
-      fresnel: 1.4,
-      edgeLine: 1,
-      iridescence: 0.3,
-      specular: 1,
-      inner: 0.75,
+      color: BRAND.deepBlue,
+      density: 0.12,
+      bounceTint: 0.25,
+      ior: 1.52,
+      dispersion: 0.25,
+      reflection: 1,
+      sheen: 0.1,
+      distortion: 2,
+      highlight: BRAND.white,
+      lights: 1.1,
+      studio: 0.6,
     },
   },
-  // Cool aqua-blue bundle (references 3 & 4).
-  aqua: {
-    shape: { strands: 6, amplitude: 1.3, waves: 2.8, depth: 0.6, separation: 0.75, organic: 0.5, swell: 0.5, spread: 0.15, twist: 0.3, width: 0.55, thickness: 0.34, roll: 0.3, variation: 0.5 },
+  // Bright aqua bundle in the Energy cyan.
+  energy: {
+    shape: { strands: 6, length: 20, amplitude: 1.3, waves: 2.8, depth: 0.6, separation: 0.75, organic: 0.5, swell: 0.5, spread: 0.15, twist: 0.3, width: 0.55, thickness: 0.34, roll: 0.3, variation: 0.5 },
     look: {
-      tint: "#dff1fa",
-      rim: "#2f7fb8",
-      highlight: "#ffffff",
-      clarity: 0.16,
-      rimStrength: 1,
-      fresnel: 1.6,
-      edgeLine: 0.9,
-      iridescence: 0.15,
-      specular: 0.9,
-      inner: 0.8,
+      color: BRAND_STOPS.energy,
+      density: 0.2,
+      bounceTint: 0.35,
+      ior: 1.48,
+      dispersion: 0.5,
+      reflection: 1,
+      sheen: 0.35,
+      distortion: 2,
+      highlight: BRAND.white,
+      lights: 1,
+      studio: 0.5,
     },
   },
 };
@@ -131,7 +139,7 @@ const defaultShape = (): GlassShape => ({
   roll: 0.5,
   variation: 0.4,
   seed: 7,
-  ...GLASS_PRESETS.clear.shape,
+  ...GLASS_PRESETS.viarna.shape,
 });
 
 interface GlassState {
@@ -152,8 +160,8 @@ interface GlassState {
 
 export const useGlass = create<GlassState>((set) => ({
   shape: defaultShape(),
-  look: { ...GLASS_PRESETS.clear.look, backdrop: { ...BG } },
-  preset: "clear",
+  look: { ...GLASS_PRESETS.viarna.look, backdrop: BG() },
+  preset: "viarna",
   playing: true,
   flowRpm: 6,
 
@@ -176,7 +184,20 @@ export const useGlass = create<GlassState>((set) => ({
       n.variation = clamp(n.variation, 0, 1);
       return { shape: n, preset: null };
     }),
-  setLook: (p) => set((s) => ({ look: { ...s.look, ...p }, preset: null })),
+  setLook: (p) =>
+    set((s) => {
+      const n = { ...s.look, ...p };
+      n.density = clamp(n.density, 0, 2);
+      n.bounceTint = clamp(n.bounceTint, 0, 1);
+      n.ior = clamp(n.ior, 1, 2.4);
+      n.dispersion = clamp(n.dispersion, 0, 1);
+      n.reflection = clamp(n.reflection, 0, 3);
+      n.sheen = clamp(n.sheen, 0, 1);
+      n.distortion = clamp(n.distortion, 0, 8);
+      n.lights = clamp(n.lights, 0, 3);
+      n.studio = clamp(n.studio, 0, 1);
+      return { look: n, preset: null };
+    }),
   setBackdrop: (p) => set((s) => ({ look: { ...s.look, backdrop: { ...s.look.backdrop, ...p } } })),
   applyPreset: (p) =>
     set((s) => ({
@@ -189,8 +210,8 @@ export const useGlass = create<GlassState>((set) => ({
   reset: () =>
     set({
       shape: defaultShape(),
-      look: { ...GLASS_PRESETS.clear.look, backdrop: { ...BG } },
-      preset: "clear",
+      look: { ...GLASS_PRESETS.viarna.look, backdrop: BG() },
+      preset: "viarna",
       playing: true,
       flowRpm: 6,
     }),

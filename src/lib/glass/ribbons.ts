@@ -107,11 +107,12 @@ export function createRibbonGeometry(strands: number): BufferGeometry {
         uv[k * 2 + 1] = j / RAD;
       }
     }
+    // Counter-clockwise seen from outside, so FrontSide is the outer wall.
     for (let i = 0; i < SEG; i++) {
       for (let j = 0; j < RAD; j++) {
         const a = base + i * (RAD + 1) + j;
         const b = a + RAD + 1;
-        idx.push(a, b, a + 1, b, b + 1, a + 1);
+        idx.push(a, a + 1, b, b, a + 1, b + 1);
       }
     }
   }
@@ -150,14 +151,25 @@ export const RIBBON_VERTEX = /* glsl */ `
     return vec3(x, y, z);
   }
 
-  void ribbonSweep(vec3 p, out vec3 outPos, out vec3 outNormal) {
+  // Cross-section radii (width, thickness): taper at the ends, and swell —
+  // width and thickness pinch/bulge along the length, out of step.
+  vec2 ribbonRadii(float u, vec4 A, vec4 C, vec4 D) {
+    float t = uPhase * C.z;
+    float taper = min(1.0, min(u, 1.0 - u) * 14.0 + 0.25);
+    float sw = max(0.25, 1.0 + uSwell * 0.6 * sin(TAU * C.w * u + D.x - t));
+    float st = max(0.25, 1.0 + uSwell * 0.6 * sin(TAU * C.w * 1.37 * u + D.x * 2.1 + 1.3 - t));
+    return vec2(uWidth * A.z * taper * sw, uThick * A.w * taper * st);
+  }
+
+  // Besides the surface point and normal, hands back the local tube frame:
+  // centre, the two cross-section axes and their radii — the glass shader
+  // traces rays through that ellipse.
+  void ribbonSweep(vec3 p, out vec3 outPos, out vec3 outNormal,
+                   out vec3 outCentre, out vec3 outW, out vec3 outH, out vec2 outRadii) {
     float u = p.x;
     float ang = p.y;
     int si = int(p.z + 0.5);
-    vec4 A = vec4(1.0), B = vec4(0.0), C = vec4(1.0), D = vec4(0.0);
-    for (int i = 0; i < MAX_STRANDS; i++) {
-      if (i == si) { A = uJitA[i]; B = uJitB[i]; C = uJitC[i]; D = uJitD[i]; }
-    }
+    vec4 A = uJitA[si], B = uJitB[si], C = uJitC[si], D = uJitD[si];
     float du = 1.0 / ${SEG}.0;
     vec3 Cn = ribbonCentre(u, A, B, C, D);
     vec3 T = u >= 1.0 ? Cn - ribbonCentre(u - du, A, B, C, D)
@@ -169,16 +181,15 @@ export const RIBBON_VERTEX = /* glsl */ `
     float cr = cos(ro), sr = sin(ro);
     vec3 w = W * cr + H * sr;
     vec3 h = H * cr - W * sr;
-    float t = uPhase * C.z;
-    float taper = min(1.0, min(u, 1.0 - u) * 14.0 + 0.25);
-    // Swell: width and thickness pinch/bulge along the length, out of step.
-    float sw = max(0.25, 1.0 + uSwell * 0.6 * sin(TAU * C.w * u + D.x - t));
-    float st = max(0.25, 1.0 + uSwell * 0.6 * sin(TAU * C.w * 1.37 * u + D.x * 2.1 + 1.3 - t));
-    float ww = uWidth * A.z * taper * sw;
-    float hh = uThick * A.w * taper * st;
+    vec2 rr = ribbonRadii(u, A, C, D);
+    float ww = rr.x, hh = rr.y;
     float ca = cos(ang), sa = sin(ang);
     outPos = Cn + w * (ww * ca) + h * (hh * sa);
     outNormal = normalize(w * (hh * ca) + h * (ww * sa));
+    outCentre = Cn;
+    outW = w;
+    outH = h;
+    outRadii = vec2(ww, hh);
   }
 `;
 
@@ -242,6 +253,17 @@ export function bakeRibbonGeometry(sh: GlassShape, phase: number): BufferGeometr
         sh.spread * Math.sin(tw),
     ];
   };
+  const radii = (u: number, s: number): [number, number] => {
+    const i = s * 4;
+    const t = phase * j.C[i + 2];
+    const taper = Math.min(1, Math.min(u, 1 - u) * 14 + 0.25);
+    const sw = Math.max(0.25, 1 + sh.swell * 0.6 * Math.sin(TAU * j.C[i + 3] * u + j.D[i] - t));
+    const st = Math.max(
+      0.25,
+      1 + sh.swell * 0.6 * Math.sin(TAU * j.C[i + 3] * 1.37 * u + j.D[i] * 2.1 + 1.3 - t),
+    );
+    return [sh.width * j.A[i + 2] * taper * sw, sh.thickness * j.A[i + 3] * taper * st];
+  };
 
   const du = 1 / SEG;
   for (let k = 0; k < n; k++) {
@@ -266,15 +288,7 @@ export function bakeRibbonGeometry(sh: GlassShape, phase: number): BufferGeometr
     const sr = Math.sin(ro);
     const w: V3 = [W[0] * cr + H[0] * sr, W[1] * cr + H[1] * sr, W[2] * cr + H[2] * sr];
     const h: V3 = [H[0] * cr - W[0] * sr, H[1] * cr - W[1] * sr, H[2] * cr - W[2] * sr];
-    const t = phase * j.C[i + 2];
-    const taper = Math.min(1, Math.min(u, 1 - u) * 14 + 0.25);
-    const sw = Math.max(0.25, 1 + sh.swell * 0.6 * Math.sin(TAU * j.C[i + 3] * u + j.D[i] - t));
-    const st = Math.max(
-      0.25,
-      1 + sh.swell * 0.6 * Math.sin(TAU * j.C[i + 3] * 1.37 * u + j.D[i] * 2.1 + 1.3 - t),
-    );
-    const ww = sh.width * j.A[i + 2] * taper * sw;
-    const hh = sh.thickness * j.A[i + 3] * taper * st;
+    const [ww, hh] = radii(u, s);
     const ca = Math.cos(ang);
     const sa = Math.sin(ang);
     for (let c = 0; c < 3; c++) P[k * 3 + c] = C[c] + w[c] * ww * ca + h[c] * hh * sa;

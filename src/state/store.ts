@@ -24,7 +24,7 @@ import { clamp } from "@/lib/geometry";
 import type { Backdrop } from "@/lib/backdrop";
 
 /** Which renderer the workspace shows. */
-export type ViewMode = "2d" | "3d" | "orbit" | "glass";
+export type ViewMode = "2d" | "3d" | "orbit" | "glass" | "glassClassic";
 
 /** Look controls for the 3D (Three.js / R3F) blobular renderer. */
 export interface Render3D {

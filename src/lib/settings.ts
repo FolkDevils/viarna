@@ -15,6 +15,7 @@
 import { useStore, type ViewMode } from "@/state/store";
 import { useOrbit, PRESETS, MAX_CIRCLES, type OrbitCircle } from "@/state/orbit";
 import { useGlass } from "@/state/glass";
+import { useGlassClassic } from "@/state/glassClassic";
 import { liveAngles } from "@/lib/orbit/runtime";
 import { downloadBlob } from "@/lib/svg/download";
 import { stamp } from "@/lib/export/registry";
@@ -53,7 +54,13 @@ const sameTypes = <T extends object>(src: Obj, ref: T): Partial<T> => {
   return out as Partial<T>;
 };
 
-const TAB_LABEL: Record<ViewMode, string> = { "2d": "2D", "3d": "3D", orbit: "Orbit", glass: "Glass" };
+const TAB_LABEL: Record<ViewMode, string> = {
+  "2d": "2D",
+  "3d": "3D",
+  orbit: "Orbit",
+  glass: "Glass",
+  glassClassic: "Classic Glass",
+};
 
 /** Snapshot the given tab. */
 export function collectSettings(tab: ViewMode): SettingsFile {
@@ -69,8 +76,8 @@ export function collectSettings(tab: ViewMode): SettingsFile {
       preset: s.preset,
       look: s.look,
     };
-  } else if (tab === "glass") {
-    const s = useGlass.getState();
+  } else if (tab === "glass" || tab === "glassClassic") {
+    const s = tab === "glass" ? useGlass.getState() : useGlassClassic.getState();
     data = { shape: s.shape, look: s.look, preset: s.preset, flowRpm: s.flowRpm, playing: s.playing };
   } else {
     const s = useStore.getState();
@@ -147,9 +154,28 @@ export function applySettings(raw: unknown): ViewMode {
     g.setFlowRpm(num(d.flowRpm, 6));
     g.setPlaying(d.playing !== false);
     useGlass.setState({
-      preset: (["clear", "azure", "aqua"] as const).find((p) => p === d.preset) ?? null,
+      preset: (["viarna", "deep", "energy"] as const).find((p) => p === d.preset) ?? null,
     });
     return "glass";
+  }
+
+  if (tab === "glassClassic") {
+    const g = useGlassClassic.getState();
+    g.reset();
+    const ref = useGlassClassic.getState();
+    if (isObj(d.shape)) g.setShape(sameTypes(d.shape, ref.shape));
+    if (isObj(d.look)) {
+      const { backdrop, ...rest } = d.look;
+      const { backdrop: refBg, ...refLook } = ref.look;
+      g.setLook(sameTypes(rest, refLook));
+      if (isObj(backdrop)) g.setBackdrop(sameTypes(backdrop, refBg));
+    }
+    g.setFlowRpm(num(d.flowRpm, 6));
+    g.setPlaying(d.playing !== false);
+    useGlassClassic.setState({
+      preset: (["clear", "azure", "aqua"] as const).find((p) => p === d.preset) ?? null,
+    });
+    return "glassClassic";
   }
 
   if (tab === "2d" || tab === "3d") {

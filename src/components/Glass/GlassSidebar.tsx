@@ -9,9 +9,9 @@ import { downloadBlob } from "@/lib/svg/download";
 import "@/components/Sidebar/Sidebar.css";
 
 const PRESET_OPTS: { value: GlassPreset; label: string }[] = [
-  { value: "clear", label: "Clear" },
-  { value: "azure", label: "Azure" },
-  { value: "aqua", label: "Aqua" },
+  { value: "viarna", label: "Viarna" },
+  { value: "deep", label: "Deep" },
+  { value: "energy", label: "Energy" },
 ];
 
 type NumKey = { [K in keyof GlassShape]: GlassShape[K] extends number ? K : never }[keyof GlassShape];
@@ -71,16 +71,21 @@ export default function GlassSidebar() {
       </Section>
 
       <Section title="Glass">
-        <ColorField label="Tint" value={look.tint} onChange={(tint) => s.setLook({ tint })} />
-        <ColorField label="Rim" value={look.rim} onChange={(rim) => s.setLook({ rim })} />
-        <ColorField label="Highlight" value={look.highlight} onChange={(highlight) => s.setLook({ highlight })} />
-        <Slider label="Body opacity" value={look.clarity} min={0} max={0.6} step={0.005} onChange={(clarity) => s.setLook({ clarity })} />
-        <Slider label="Rim strength" value={look.rimStrength} min={0} max={1} step={0.01} onChange={(rimStrength) => s.setLook({ rimStrength })} />
-        <Slider label="Rim falloff" value={look.fresnel} min={0.5} max={6} step={0.05} onChange={(fresnel) => s.setLook({ fresnel })} />
-        <Slider label="Edge line" value={look.edgeLine} min={0} max={1} step={0.01} onChange={(edgeLine) => s.setLook({ edgeLine })} />
-        <Slider label="Iridescence" value={look.iridescence} min={0} max={1} step={0.01} onChange={(iridescence) => s.setLook({ iridescence })} />
-        <Slider label="Inner streaks" value={look.inner} min={0} max={1} step={0.01} onChange={(inner) => s.setLook({ inner })} />
-        <Slider label="Highlights" value={look.specular} min={0} max={1} step={0.01} onChange={(specular) => s.setLook({ specular })} />
+        <ColorField label="Glass colour" value={look.color} onChange={(color) => s.setLook({ color })} />
+        <Slider label="Colour density" value={look.density} min={0} max={1} step={0.005} onChange={(density) => s.setLook({ density })} />
+        <Slider label="Bounce colour" value={look.bounceTint} min={0} max={1} step={0.01} onChange={(bounceTint) => s.setLook({ bounceTint })} />
+        <Slider label="Refraction (IOR)" value={look.ior} min={1} max={2.4} step={0.01} onChange={(ior) => s.setLook({ ior })} />
+        <Slider label="Dispersion" value={look.dispersion} min={0} max={1} step={0.01} onChange={(dispersion) => s.setLook({ dispersion })} />
+        <Slider label="Reflections" value={look.reflection} min={0} max={3} step={0.01} onChange={(reflection) => s.setLook({ reflection })} />
+        <Slider label="Iridescent sheen" value={look.sheen} min={0} max={1} step={0.01} onChange={(sheen) => s.setLook({ sheen })} />
+        <Slider label="Background bend" value={look.distortion} min={0} max={8} step={0.05} onChange={(distortion) => s.setLook({ distortion })} />
+        <p className="hint">Light passing straight through stays pale; light that travels further or bounces inside picks up the colour — edges, overlaps, streaks.</p>
+      </Section>
+
+      <Section title="Studio lights">
+        <ColorField label="Softbox colour" value={look.highlight} onChange={(highlight) => s.setLook({ highlight })} />
+        <Slider label="Softbox brightness" value={look.lights} min={0} max={3} step={0.01} onChange={(lights) => s.setLook({ lights })} />
+        <Slider label="Studio contrast" value={look.studio} min={0} max={1} step={0.01} onChange={(studio) => s.setLook({ studio })} />
       </Section>
 
       <Section title="Stage">

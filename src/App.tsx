@@ -7,6 +7,7 @@ import OrbitView from "@/components/Orbit/OrbitView";
 import OrbitSidebar from "@/components/Orbit/OrbitSidebar";
 import { useOrbit } from "@/state/orbit";
 import { useGlass } from "@/state/glass";
+import { useGlassClassic } from "@/state/glassClassic";
 import { openSettingsBlob, openSettingsFile, saveSettingsFile, tabLabel } from "@/lib/settings";
 import "@/App.css";
 
@@ -15,18 +16,22 @@ import "@/App.css";
 const Viewer3D = lazy(() => import("@/components/Viewer3D/Viewer3D"));
 const GlassView = lazy(() => import("@/components/Glass/GlassView"));
 const GlassSidebar = lazy(() => import("@/components/Glass/GlassSidebar"));
+const GlassClassicView = lazy(() => import("@/components/GlassClassic/GlassClassicView"));
+const GlassClassicSidebar = lazy(() => import("@/components/GlassClassic/GlassClassicSidebar"));
 
 const VIEW_OPTS = [
   { value: "2d" as const, label: "2D" },
   { value: "3d" as const, label: "3D" },
   { value: "orbit" as const, label: "Orbit" },
   { value: "glass" as const, label: "Glass" },
+  { value: "glassClassic" as const, label: "Classic Glass" },
 ];
 
 export default function App() {
   const resetScene = useStore((s) => s.reset);
   const resetOrbit = useOrbit((s) => s.reset);
   const resetGlass = useGlass((s) => s.reset);
+  const resetGlassClassic = useGlassClassic((s) => s.reset);
   const viewMode = useStore((s) => s.viewMode);
   const setViewMode = useStore((s) => s.setViewMode);
 
@@ -104,7 +109,18 @@ export default function App() {
           <button className="ghost-btn" onClick={doSave} title={`Save this tab's settings to a file`}>
             Save
           </button>
-          <button className="ghost-btn" onClick={viewMode === "orbit" ? resetOrbit : viewMode === "glass" ? resetGlass : resetScene}>
+          <button
+            className="ghost-btn"
+            onClick={
+              viewMode === "orbit"
+                ? resetOrbit
+                : viewMode === "glass"
+                  ? resetGlass
+                  : viewMode === "glassClassic"
+                    ? resetGlassClassic
+                    : resetScene
+            }
+          >
             Reset
           </button>
         </div>
@@ -114,6 +130,11 @@ export default function App() {
           <Suspense fallback={<div className="viewer3d-wrap" />}>
             <GlassView />
             <GlassSidebar />
+          </Suspense>
+        ) : viewMode === "glassClassic" ? (
+          <Suspense fallback={<div className="viewer3d-wrap" />}>
+            <GlassClassicView />
+            <GlassClassicSidebar />
           </Suspense>
         ) : viewMode === "orbit" ? (
           <>
