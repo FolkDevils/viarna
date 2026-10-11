@@ -8,7 +8,13 @@ import { useEffect, useRef } from "react";
 import { Color, DoubleSide, Mesh, MeshPhysicalMaterial, PerspectiveCamera, WebGLRenderer } from "three";
 import { OrbitControls } from "three-stdlib";
 import { useGlass } from "@/state/glass";
-import { bakeRibbonGeometry, ribbonUniformValues, strandJitter, type StrandJitter } from "@/lib/glass/ribbons";
+import {
+  bakeRibbonGeometry,
+  ribbonHalfHeight,
+  ribbonUniformValues,
+  strandJitter,
+  type StrandJitter,
+} from "@/lib/glass/ribbons";
 import type { GlassShape } from "@/state/glass";
 import { GlassPipeline } from "@/lib/glass/pipeline";
 import { backdropCss, type Backdrop } from "@/lib/backdrop";
@@ -39,7 +45,7 @@ export default function GlassView() {
     controls.enableDamping = true;
     controls.enablePan = false;
     controls.minDistance = 4;
-    controls.maxDistance = 40;
+    controls.maxDistance = 60;
 
     const pipeline = new GlassPipeline(renderer, useGlass.getState().shape.strands);
     let jitShape: GlassShape | null = null;
@@ -63,12 +69,24 @@ export default function GlassView() {
     ro.observe(wrap);
     resize();
 
+    // Pull the camera back (keeping its angle) so the bundle's full height
+    // fits; the strands are meant to run off the sides.
+    const frame = (sh: GlassShape) => {
+      let half = 0;
+      for (const p of [0, 1.6, 3.1, 4.7]) half = Math.max(half, ribbonHalfHeight(sh, p));
+      const fit = (half * 1.12) / Math.tan((camera.fov * Math.PI) / 360);
+      const dist = Math.min(controls.maxDistance, Math.max(controls.minDistance, fit));
+      const dir = camera.position.clone().sub(controls.target).normalize();
+      camera.position.copy(controls.target).addScaledVector(dir, dist);
+    };
+
     const sync = () => {
       const s = useGlass.getState();
       pipeline.setStrands(s.shape.strands);
       if (s.shape !== jitShape) {
         jitShape = s.shape;
         jitter = strandJitter(s.shape);
+        frame(s.shape);
       }
       const vals = ribbonUniformValues(s.shape, flowPhase, jitter!);
       for (const [k, v] of Object.entries(vals)) pipeline.ribbon[k].value = v;
