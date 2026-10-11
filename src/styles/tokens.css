@@ -8,8 +8,8 @@
   --text: #e8eaed;
   --text-dim: #9aa0aa;
   --text-faint: #6b7280;
-  --accent: #5b8cff;
-  --accent-soft: rgba(91, 140, 255, 0.16);
+  --accent: #0070d4; /* Viarna Blue */
+  --accent-soft: rgba(0, 112, 212, 0.18);
   --danger: #ff6b6b;
 
   --radius: 10px;

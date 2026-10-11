@@ -4,6 +4,7 @@
  * necks survive any amount of pulling apart.
  */
 import type { Scene } from "./types";
+import { BRAND } from "@/lib/brand";
 
 let counter = 0;
 /** Small, dependency-free unique id. */
@@ -14,9 +15,11 @@ export const STAGE_WIDTH = 720;
 export const STAGE_HEIGHT = 560;
 
 export const defaultScene = (): Scene => {
-  const topLeft = { id: nextId(), x: 235, y: 185, r: 62 };
-  const topRight = { id: nextId(), x: 485, y: 185, r: 62 };
-  const bottom = { id: nextId(), x: 360, y: 430, r: 62 };
+  const cx = STAGE_WIDTH / 2;
+  const cy = STAGE_HEIGHT / 2;
+  const topLeft = { id: nextId(), x: cx - 153.64, y: cy - 197.48, r: 62 };
+  const topRight = { id: nextId(), x: cx + 153.64, y: cy - 197.48, r: 62 };
+  const bottom = { id: nextId(), x: cx, y: cy + 150, r: 62 };
   return {
     width: STAGE_WIDTH,
     height: STAGE_HEIGHT,
@@ -27,9 +30,9 @@ export const defaultScene = (): Scene => {
     ],
     params: {
       mode: "fill",
-      color: "#111111",
+      color: BRAND.blue,
       background: null,
-      goo: 0.5,
+      goo: 0.1,
       resolution: 200,
       smoothing: 1,
       strokeWidth: 6,

@@ -24,7 +24,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #8fb0ff, var(--accent));
+  background: linear-gradient(90deg, #0070d4, #52eeff); /* brand Energy */
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .brand-name {

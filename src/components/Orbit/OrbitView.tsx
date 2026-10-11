@@ -195,21 +195,21 @@ export default function OrbitView() {
         for (const c of s.circles) rings.add(Math.round(c.orbit));
         ctx.lineWidth = lw * dpr;
         ctx.setLineDash([4 * dpr * lw, 5 * dpr * lw]);
-        ctx.strokeStyle = "rgba(91,140,255,0.45)";
+        ctx.strokeStyle = "rgba(0,112,212,0.45)";
         for (const r of rings) {
           ctx.beginPath();
           ctx.arc(0, 0, r, 0, Math.PI * 2);
           ctx.stroke();
         }
         ctx.setLineDash([]);
-        ctx.fillStyle = "rgba(91,140,255,0.8)";
+        ctx.fillStyle = "rgba(0,112,212,0.8)";
         ctx.beginPath();
         ctx.arc(0, 0, 3 * dpr * lw, 0, Math.PI * 2);
         ctx.fill();
         for (const c of s.circles) {
           const p = posOf(c);
           const sel = c.id === s.selectedId;
-          ctx.strokeStyle = sel ? "rgba(91,140,255,1)" : "rgba(91,140,255,0.35)";
+          ctx.strokeStyle = sel ? "rgba(0,112,212,1)" : "rgba(0,112,212,0.35)";
           ctx.lineWidth = (sel ? 1.5 : 1) * dpr * lw;
           ctx.beginPath();
           ctx.arc(p.x, p.y, c.r, 0, Math.PI * 2);

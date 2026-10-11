@@ -11,6 +11,7 @@ import { Slider, Segmented, ColorField, Toggle } from "@/components/common/field
 import { BackdropField } from "@/components/common/BackdropField";
 import { ExportPanel } from "@/components/common/ExportPanel";
 import { exporters, stamp } from "@/lib/export/registry";
+import { BRAND } from "@/lib/brand";
 import { downloadBlob } from "@/lib/svg/download";
 import { renderSvg } from "@/lib/svg/serialize";
 import { copySvg, downloadSVG, downloadJSON, slugify } from "@/lib/svg/download";
@@ -237,13 +238,13 @@ export default function Sidebar() {
                 { value: "transparent", label: "Transparent" },
                 { value: "color", label: "Solid" },
               ]}
-              onChange={(v) => setParams({ background: v === "color" ? "#ffffff" : null })}
+              onChange={(v) => setParams({ background: v === "color" ? BRAND.white : null })}
             />
           )}
           {!isKnockout && bgOn && (
             <ColorField
               label="Background color"
-              value={params.background ?? "#ffffff"}
+              value={params.background ?? BRAND.white}
               onChange={(background) => setParams({ background })}
             />
           )}

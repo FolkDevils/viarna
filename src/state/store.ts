@@ -22,6 +22,7 @@ import type { Blob, Link, RenderParams, Scene } from "@/model/types";
 import { defaultScene, newBlob, nextId } from "@/model/defaults";
 import { clamp } from "@/lib/geometry";
 import type { Backdrop } from "@/lib/backdrop";
+import { BRAND } from "@/lib/brand";
 
 /** Which renderer the workspace shows. */
 export type ViewMode = "2d" | "3d" | "orbit" | "glass" | "glassClassic";
@@ -88,16 +89,15 @@ const MAX_LINK_T = 120;
 const DEFAULT_LINK_T = 16;
 /** Within this many px of the centreline a blob is treated as "on the spine". */
 const AXIS_SNAP = 10;
-/** Figma's default canvas grey — the editor backdrop out of the box. */
-export const DEFAULT_STAGE_COLOR = "#F5F5F5";
+export const DEFAULT_STAGE_COLOR = BRAND.white;
 
 export const useStore = create<ViarnaState>((set) => ({
   scene: defaultScene(),
   selectedId: null,
-  mirror: false,
-  uniformSize: false,
+  mirror: true,
+  uniformSize: true,
   stageColor: DEFAULT_STAGE_COLOR,
-  stageGradient: { type: "solid", to: "#cfd6e6", angle: 180 },
+  stageGradient: { type: "solid", to: BRAND.air, angle: 0 },
   viewMode: "2d",
   render3d: { detail: 64, roughness: 0.3, metalness: 0.1, spin: "off", spinRpm: 8 },
 
@@ -322,5 +322,5 @@ export const useStore = create<ViarnaState>((set) => ({
       selectedId: null,
     }),
 
-  reset: () => set({ scene: defaultScene(), selectedId: null }),
+  reset: () => set({ scene: defaultScene(), selectedId: null, mirror: true, uniformSize: true }),
 }));

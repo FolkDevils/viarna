@@ -41,6 +41,7 @@ import {
 } from "@/lib/three/blobs3d";
 import type { Blob } from "@/model/types";
 import { backdropCss, type Backdrop } from "@/lib/backdrop";
+import { BRAND, BRAND_STOPS } from "@/lib/brand";
 import { exporters } from "@/lib/export/registry";
 import { paintBackdrop } from "@/lib/export/paintBackdrop";
 import { canvasToPng } from "@/lib/export/record";
@@ -288,7 +289,7 @@ function BlobHandle({ blob }: { blob: Blob }) {
             wireframe
             transparent
             opacity={selected ? 0.3 : 0.12}
-            color="#5b8cff"
+            color={BRAND.blue}
             depthWrite={false}
           />
         </mesh>
@@ -318,7 +319,7 @@ export default function Viewer3D() {
         {/* Key + fill + cool rim for a soft, glossy read. */}
         <ambientLight intensity={0.55} />
         <directionalLight position={[3, 4, 5]} intensity={1.15} />
-        <directionalLight position={[-4, -2, -3]} intensity={0.4} color="#8fb0ff" />
+        <directionalLight position={[-4, -2, -3]} intensity={0.4} color={BRAND_STOPS.energy} />
         <pointLight position={[0, 0, 4]} intensity={0.5} />
 
         <Spinner>

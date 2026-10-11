@@ -1,4 +1,5 @@
 /** Small, styled form controls shared across the panels. */
+import { BRAND_SWATCHES } from "@/lib/brand";
 import "./fields.css";
 
 interface SliderProps {
@@ -107,6 +108,20 @@ export function ColorField({ label, value, onChange }: ColorProps) {
           spellCheck={false}
           onChange={(e) => onChange(e.target.value)}
         />
+        {BRAND_SWATCHES.map((s) => (
+          <button
+            key={s.value}
+            type="button"
+            className={s.value.toLowerCase() === value.toLowerCase() ? "swatch active" : "swatch"}
+            style={{ background: s.value }}
+            title={s.name}
+            aria-label={s.name}
+            onClick={(e) => {
+              e.preventDefault();
+              onChange(s.value);
+            }}
+          />
+        ))}
       </div>
     </label>
   );

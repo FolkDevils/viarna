@@ -11,6 +11,7 @@
  * look hold at any window size.
  */
 import { create } from "zustand";
+import { BRAND, BRAND_BACKDROPS } from "@/lib/brand";
 import { clamp } from "@/lib/geometry";
 import { liveAngles } from "@/lib/orbit/runtime";
 import type { Backdrop } from "@/lib/backdrop";
@@ -62,13 +63,16 @@ export interface OrbitLook {
 
 export type OrbitPreset = "halo" | "tight" | "solid";
 
-/** Presets measured off the reference renders (scaled to an R≈110 circle). */
+/**
+ * Presets measured off the reference renders (scaled to an R≈110 circle),
+ * in brand colours.
+ */
 export const PRESETS: Record<OrbitPreset, OrbitLook> = {
   halo: {
-    backdrop: { type: "solid", from: "#cecece", to: "#9a9a9a", angle: 180 },
-    halo: "#141d6c",
-    rim: "#02025f",
-    core: "#010109",
+    backdrop: { ...BRAND_BACKDROPS.air.backdrop },
+    halo: BRAND.blue,
+    rim: BRAND.deepBlue,
+    core: BRAND.deepBlue,
     goo: 27,
     haloWidth: 21,
     haloFade: 0.58,
@@ -80,10 +84,10 @@ export const PRESETS: Record<OrbitPreset, OrbitLook> = {
     grainBoil: false,
   },
   tight: {
-    backdrop: { type: "solid", from: "#c7c7c7", to: "#959595", angle: 180 },
-    halo: "#141d6c",
-    rim: "#02025f",
-    core: "#050409",
+    backdrop: { ...BRAND_BACKDROPS.white.backdrop },
+    halo: BRAND.blue,
+    rim: BRAND.deepBlue,
+    core: BRAND.deepBlue,
     goo: 18,
     haloWidth: 0,
     haloFade: 0.58,
@@ -95,10 +99,10 @@ export const PRESETS: Record<OrbitPreset, OrbitLook> = {
     grainBoil: false,
   },
   solid: {
-    backdrop: { type: "solid", from: "#f9f9f9", to: "#d9dde3", angle: 180 },
-    halo: "#000000",
-    rim: "#000000",
-    core: "#000000",
+    backdrop: { ...BRAND_BACKDROPS.white.backdrop },
+    halo: BRAND.deepBlue,
+    rim: BRAND.deepBlue,
+    core: BRAND.deepBlue,
     goo: 30,
     haloWidth: 0,
     haloFade: 0.58,
