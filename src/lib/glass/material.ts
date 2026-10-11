@@ -42,6 +42,8 @@ export function createRibbonUniforms(): RibbonUniforms {
     uOrganic: { value: 0.5 },
     uSwell: { value: 0.5 },
     uStrands: { value: 1 },
+    uSpacing: { value: 1 },
+    uMelt: { value: 0.5 },
     uJitA: { value: new Float32Array(MAX_STRANDS * 4) },
     uJitB: { value: new Float32Array(MAX_STRANDS * 4) },
     uJitC: { value: new Float32Array(MAX_STRANDS * 4) },
@@ -71,6 +73,7 @@ export const GLSL_COLOR = /* glsl */ `
 
 const VERT = /* glsl */ `
   ${RIBBON_VERTEX}
+  varying vec3 vM;
   varying vec3 vP;
   varying vec3 vN;
   varying vec3 vC;
@@ -84,6 +87,7 @@ const VERT = /* glsl */ `
     vec2 rad;
     ribbonSweep(position, pos, nrm, cen, w, h, rad);
     vStrand = position.z;
+    vM = pos;
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     mat3 rot = mat3(modelViewMatrix);
     vP = mv.xyz;
@@ -113,6 +117,9 @@ const FRAG = /* glsl */ `
   uniform float uReflect;
   uniform float uSheen;
   uniform float uDistort;
+  uniform float uPixel; // ~1.5 px in world units per unit of view distance
+  ${RIBBON_VERTEX}
+  varying vec3 vM;
   varying vec3 vP;
   varying vec3 vN;
   varying vec3 vC;
@@ -230,6 +237,13 @@ const FRAG = /* glsl */ `
       // Second layer only: skip whatever is nearest to the camera.
       if (gl_FragCoord.z <= texture(uFront, gl_FragCoord.xy / uRes).r + 2e-5) discard;
     #endif
+    vec3 meltN;
+    float meltW, cover;
+    if (!ribbonMelt(vM, int(vStrand + 0.5), uPixel * length(vP), meltN, meltW, cover)) discard;
+    #ifndef LAYERED
+      // Offscreen helpers have no multisampling: cut at the crease itself.
+      if (cover < 0.5) discard;
+    #endif
 
     vec3 W = normalize(vW);
     vec3 H = normalize(vH - W * dot(vH, W));
@@ -244,6 +258,8 @@ const FRAG = /* glsl */ `
     vec3 p = toLocal * (vP - vC);
     p.xy /= max(length(p.xy / gR), 1e-4);
     vec3 nl = normalize(vec3(p.xy / (gR * gR), 0.0));
+    // The ribbon has no transform, so model space is world space.
+    if (meltW > 0.0) nl = normalize(mix(nl, toLocal * (mat3(viewMatrix) * meltN), meltW));
     // Tessellation can leave the analytic normal facing slightly away right
     // at the silhouette; tip it back toward the eye.
     float facing = dot(dl, nl);
@@ -263,7 +279,7 @@ const FRAG = /* glsl */ `
     }
 
     #ifdef LAYERED
-      gl_FragColor = vec4(toSRGB(rolloff(col)), fade);
+      gl_FragColor = vec4(toSRGB(rolloff(col)), fade * cover);
     #else
       gl_FragColor = vec4(col, fade);
     #endif
@@ -287,6 +303,9 @@ const DEFINES: Record<GlassPass, Record<string, string | number>> = {
 export function createGlassMaterial(ribbon: RibbonUniforms, pass: GlassPass): ShaderMaterial {
   return new ShaderMaterial({
     defines: DEFINES[pass],
+    // Antialiases the cut where strands melt together (the on-screen pass
+    // is the only multisampled one).
+    alphaToCoverage: pass === "front",
     transparent: true,
     depthWrite: true,
     side: FrontSide,
@@ -308,6 +327,7 @@ export function createGlassMaterial(ribbon: RibbonUniforms, pass: GlassPass): Sh
       uReflect: { value: 1 },
       uSheen: { value: 0.2 },
       uDistort: { value: 2 },
+      uPixel: { value: 0.001 },
     },
     vertexShader: VERT,
     fragmentShader: FRAG,
@@ -321,11 +341,16 @@ export function createIdMaterial(ribbon: RibbonUniforms): ShaderMaterial {
     uniforms: { ...ribbon },
     vertexShader: VERT,
     fragmentShader: /* glsl */ `
+      ${RIBBON_VERTEX}
+      varying vec3 vM;
       varying vec2 vUv;
       varying float vStrand;
       void main() {
         float fade = smoothstep(0.0, 0.04, vUv.x) * smoothstep(1.0, 0.96, vUv.x);
         if (fade < 0.004) discard;
+        vec3 meltN;
+        float meltW, cover;
+        if (!ribbonMelt(vM, int(vStrand + 0.5), 1e-4, meltN, meltW, cover) || cover < 0.5) discard;
         gl_FragColor = vec4((vStrand + 1.0) / 255.0, 0.0, 0.0, 1.0);
       }
     `,

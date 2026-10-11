@@ -21,6 +21,8 @@ const SHAPE_SLIDERS: { key: NumKey; label: string; min: number; max: number; ste
   { key: "waves", label: "Waves", min: 0.25, max: 6, step: 0.05 },
   { key: "depth", label: "Depth swing", min: 0, max: 3, step: 0.01 },
   { key: "separation", label: "Separation", min: 0, max: 4, step: 0.01 },
+  { key: "spacing", label: "Strand spacing", min: 0, max: 1.5, step: 0.01 },
+  { key: "melt", label: "Melt", min: 0, max: 1, step: 0.01 },
   { key: "variation", label: "Individuality", min: 0, max: 1, step: 0.01 },
   { key: "organic", label: "Organic", min: 0, max: 1, step: 0.01 },
   { key: "swell", label: "Thickness swell", min: 0, max: 1, step: 0.01 },

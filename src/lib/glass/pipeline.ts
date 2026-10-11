@@ -231,6 +231,11 @@ export class GlassPipeline {
     fu.uIds.value = h.ids.texture;
     this.peelMat.uniforms.uFront.value = h.ids.depthTexture;
     this.peelMat.uniforms.uRes.value = h.res;
+    // 1.5 px at unit view distance, for antialiasing where strands melt.
+    const px = (1.5 * 2 * Math.tan((camera.fov * Math.PI) / 360)) / camera.zoom;
+    fu.uPixel.value = px / this.res.y;
+    this.fullMat.uniforms.uPixel.value = px / h.res.y;
+    this.peelMat.uniforms.uPixel.value = px / h.res.y;
 
     this.pass(this.back, this.backdropMat, null, camera);
     // Strand ids are stored as id + 1, so the clear must read as 0.

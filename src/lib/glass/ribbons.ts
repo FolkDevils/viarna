@@ -135,7 +135,7 @@ export const RIBBON_VERTEX = /* glsl */ `
   #define MAX_STRANDS ${MAX_STRANDS}
   uniform float uLength, uAmp, uWaves, uDepth, uSpread, uTwist;
   uniform float uWidth, uThick, uRoll, uPhase;
-  uniform float uSeparation, uOrganic, uSwell;
+  uniform float uSeparation, uOrganic, uSwell, uSpacing, uMelt;
   uniform int uStrands;
   uniform vec4 uJitA[MAX_STRANDS];
   uniform vec4 uJitB[MAX_STRANDS];
@@ -167,7 +167,7 @@ export const RIBBON_VERTEX = /* glsl */ `
     return vec2(uWidth * A.z * taper * sw, uThick * A.w * taper * st);
   }
 
-  // How far out the lanes sit at u so neighbours never touch: the fattest
+  // How far out the lanes sit at u so neighbours just touch: the fattest
   // pair of strands there must fit between evenly spaced lanes, measured
   // across the strands' helical tilt. Norms stand in for max() (8 for each
   // strand's width vs thickness, 16 across pairs) so the lanes breathe
@@ -195,18 +195,101 @@ export const RIBBON_VERTEX = /* glsl */ `
     return 1.05 * snug / sqrt(max(0.2, 1.0 - snug * snug * k * k));
   }
 
-  // Separation stretches the lanes vertically and drift only moves a strand
-  // outward — both keep neighbours at least as far apart as laneAt allows.
-  vec3 ribbonCentre(float u, vec4 A, vec4 B, vec4 C, vec4 D) {
+  // lane = the lane radius at u (laneAt × spacing). Separation stretches the
+  // lanes vertically and drift only moves a strand outward, so at spacing
+  // 1 neighbours never touch; below 1 they overlap and the shader melts them
+  // together.
+  vec3 ribbonCentreAt(float u, vec4 A, vec4 B, vec4 C, vec4 D, float lane) {
     vec3 c = ribbonSpine(u);
     vec3 T = normalize(ribbonSpine(u + 1.0 / ${SEG}.0) - c);
     vec3 W = normalize(cross(vec3(0.0, 0.0, 1.0), T));
     vec3 H = cross(T, W);
     float t = uPhase * C.z;
     float drift = uOrganic * 0.35 * uAmp * A.x * (0.5 + 0.5 * sin(TAU * D.w * u + D.x - t));
-    float r = laneAt(u) + uSpread + drift;
+    float r = lane + uSpread + drift;
     float th = TAU * uTwist * u + B.y;
     return c + r * (cos(th) * (1.0 + uSeparation) * W + sin(th) * H);
+  }
+
+  vec3 ribbonCentre(float u, vec4 A, vec4 B, vec4 C, vec4 D) {
+    return ribbonCentreAt(u, A, B, C, D, laneAt(u) * uSpacing);
+  }
+
+  // Cross-section axes at centre c (tangent T): oriented by the strand's lane
+  // (spine → strand), which turns smoothly with the twist — a fixed world
+  // axis flips wherever a strand heads toward the camera — then rolled.
+  void ribbonAxes(float u, vec3 c, vec3 T, vec4 B, out vec3 w, out vec3 h) {
+    vec3 toLane = c - ribbonSpine(u);
+    toLane -= T * dot(toLane, T);
+    vec3 W = length(toLane) > 1e-3 ? normalize(toLane) : normalize(cross(vec3(0.0, 0.0, 1.0), T));
+    vec3 H = normalize(cross(T, W));
+    float ro = TAU * uRoll * u + B.x;
+    float cr = cos(ro), sr = sin(ro);
+    w = W * cr + H * sr;
+    h = H * cr - W * sr;
+  }
+
+  // Approximate signed distance from p to strand s's surface (negative
+  // inside), plus the outward normal there. Finds the nearest point on the
+  // strand's centreline with Newton steps from u0, the slice at p.x (lane,
+  // the lane radius, is held at that slice's value — it changes slowly).
+  // Distances well beyond reach (the melt width) aren't exact: 1e3.
+  float strandDistance(vec3 p, int s, float u0, float lane, float reach, out vec3 n) {
+    vec4 A = uJitA[s], B = uJitB[s], C = uJitC[s], D = uJitD[s];
+    float h = 1.0 / ${SEG}.0;
+    float u = u0;
+    vec3 c = ribbonCentreAt(u, A, B, C, D, lane);
+    vec3 dc = vec3(1.0, 0.0, 0.0);
+    for (int i = 0; i < 2; i++) {
+      dc = (ribbonCentreAt(u + h, A, B, C, D, lane) - c) / h;
+      u = clamp(u + dot(p - c, dc) / max(dot(dc, dc), 1e-6), 0.0, 1.0);
+      c = ribbonCentreAt(u, A, B, C, D, lane);
+      if (i == 0) {
+        vec2 r0 = ribbonRadii(u, A, C, D);
+        // One Newton step lands close to the nearest point; the margin
+        // covers what's left.
+        if (length(p - c) > 1.5 * max(r0.x, r0.y) + reach + 0.1) { n = vec3(0.0); return 1e3; }
+      }
+    }
+    vec3 w, hv;
+    ribbonAxes(u, c, normalize(dc), B, w, hv);
+    vec2 r = max(ribbonRadii(u, A, C, D), vec2(1e-3));
+    vec3 d = p - c;
+    vec2 q = vec2(dot(d, w), dot(d, hv));
+    float k0 = length(q / r);
+    float k1 = length(q / (r * r));
+    n = normalize(w * (q.x / (r.x * r.x)) + hv * (q.y / (r.y * r.y)) + 1e-6);
+    return k0 * (k0 - 1.0) / max(k1, 1e-5);
+  }
+
+  // Where strands overlap they melt into one piece of glass: a surface that
+  // lies inside another strand is interior (returns false — discard it), and
+  // near a join the surface normal leans toward the neighbour's, as a smooth
+  // union's would, so the crease shades like a soft fillet. nOut/wOut: the
+  // neighbours' blended normal and how far to lean toward it (0..0.5).
+  // cover: 0..1 across a band (world units, ~1.5 px) straddling the crease,
+  // so the cut edge can be antialiased.
+  bool ribbonMelt(vec3 p, int self, float band, out vec3 nOut, out float wOut, out float cover) {
+    vec3 acc = vec3(0.0);
+    float wsum = 0.0;
+    float k = 0.05 + 0.6 * uMelt;
+    float dmin = 1e3;
+    float u0 = clamp(p.x / uLength + 0.5, 0.0, 1.0);
+    float lane = laneAt(u0) * uSpacing;
+    for (int s = 0; s < MAX_STRANDS; s++) {
+      if (s >= uStrands) break;
+      if (s == self) continue;
+      vec3 n;
+      float d = strandDistance(p, s, u0, lane, k, n);
+      dmin = min(dmin, d);
+      float wgt = 0.5 - 0.5 * clamp(d / k, 0.0, 1.0);
+      acc += n * wgt;
+      wsum += wgt;
+    }
+    cover = smoothstep(-0.5 * band, 0.5 * band, dmin);
+    wOut = min(wsum, 0.5);
+    nOut = wsum > 0.0 ? normalize(acc) : vec3(0.0);
+    return cover > 0.0;
   }
 
   // Besides the surface point and normal, hands back the local tube frame:
@@ -223,17 +306,8 @@ export const RIBBON_VERTEX = /* glsl */ `
     vec3 T = u >= 1.0 ? Cn - ribbonCentre(u - du, A, B, C, D)
                       : ribbonCentre(min(1.0, u + du), A, B, C, D) - Cn;
     T = normalize(T);
-    // Orient the cross-section by the strand's lane (spine → strand), which
-    // turns smoothly with the twist; a fixed world axis flips wherever a
-    // strand heads toward the camera.
-    vec3 toLane = Cn - ribbonSpine(u);
-    toLane -= T * dot(toLane, T);
-    vec3 W = length(toLane) > 1e-3 ? normalize(toLane) : normalize(cross(vec3(0.0, 0.0, 1.0), T));
-    vec3 H = normalize(cross(T, W));
-    float ro = TAU * uRoll * u + B.x;
-    float cr = cos(ro), sr = sin(ro);
-    vec3 w = W * cr + H * sr;
-    vec3 h = H * cr - W * sr;
+    vec3 w, h;
+    ribbonAxes(u, Cn, T, B, w, h);
     vec2 rr = ribbonRadii(u, A, C, D);
     float ww = rr.x, hh = rr.y;
     // Lanes on the inside of a spine bend curve tighter than the spine. A
@@ -280,6 +354,8 @@ export function ribbonUniformValues(sh: GlassShape, phase: number, j: StrandJitt
     uOrganic: sh.organic,
     uSwell: sh.swell,
     uStrands: sh.strands,
+    uSpacing: sh.spacing,
+    uMelt: sh.melt,
     uJitA: j.A,
     uJitB: j.B,
     uJitC: j.C,
@@ -334,7 +410,7 @@ function sweep(sh: GlassShape, phase: number, j: StrandJitter) {
     const t = phase * j.C[i + 2];
     const drift =
       sh.organic * 0.35 * sh.amplitude * j.A[i] * (0.5 + 0.5 * Math.sin(TAU * j.D[i + 3] * u + j.D[i] - t));
-    const r = laneAt(u) + sh.spread + drift;
+    const r = laneAt(u) * sh.spacing + sh.spread + drift;
     const th = TAU * sh.twist * u + j.B[i + 1];
     const ow = Math.cos(th) * (1 + sh.separation) * r;
     const oh = Math.sin(th) * r;

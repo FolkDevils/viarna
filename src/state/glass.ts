@@ -25,6 +25,10 @@ export interface GlassShape {
   swell: number;
   /** Radius the strands are wound around each other (bundle). */
   spread: number;
+  /** Lane spacing: 1 = neighbours just touch, below 1 they overlap and melt together. */
+  spacing: number;
+  /** How wide and soft the joins are where strands melt together, 0..1. */
+  melt: number;
   /** Turns the bundle twists along its length. */
   twist: number;
   /** Ribbon half-width. */
@@ -72,7 +76,7 @@ const BG = (): Backdrop => ({ ...BRAND_BACKDROPS.white.backdrop });
 export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; look: Omit<GlassLook, "backdrop"> }> = {
   // Clear Viarna Blue glass, tuned against the brand reference render.
   viarna: {
-    shape: { strands: 3, length: 28.5, amplitude: 0.77, waves: 2.3, depth: 3, spread: 0.52, separation: 0.25, organic: 0.6, swell: 1, twist: 1.3, width: 0.9, thickness: 0.715, roll: 0, variation: 1, seed: 7 },
+    shape: { strands: 3, length: 28.5, amplitude: 0.77, waves: 2.3, depth: 3, spread: 0.52, spacing: 0.55, melt: 0.5, separation: 0.25, organic: 0.6, swell: 1, twist: 1.3, width: 0.9, thickness: 0.715, roll: 0, variation: 1, seed: 7 },
     look: {
       color: BRAND.blue,
       density: 0.1,
@@ -89,7 +93,7 @@ export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; lo
   },
   // Thicker Deep Blue glass.
   deep: {
-    shape: { strands: 5, length: 20, amplitude: 1.7, waves: 2, depth: 1.5, separation: 1.2, organic: 0.6, swell: 0.55, spread: 0.3, twist: 0.6, width: 0.8, thickness: 0.5, roll: 0.5, variation: 0.6 },
+    shape: { strands: 5, length: 20, amplitude: 1.7, waves: 2, depth: 1.5, separation: 1.2, organic: 0.6, swell: 0.55, spread: 0.3, spacing: 0.8, melt: 0.4, twist: 0.6, width: 0.8, thickness: 0.5, roll: 0.5, variation: 0.6 },
     look: {
       color: BRAND.deepBlue,
       density: 0.12,
@@ -106,7 +110,7 @@ export const GLASS_PRESETS: Record<GlassPreset, { shape: Partial<GlassShape>; lo
   },
   // Bright aqua bundle in the Energy cyan.
   energy: {
-    shape: { strands: 6, length: 20, amplitude: 1.3, waves: 2.8, depth: 0.6, separation: 0.75, organic: 0.5, swell: 0.5, spread: 0.15, twist: 0.3, width: 0.55, thickness: 0.34, roll: 0.3, variation: 0.5 },
+    shape: { strands: 6, length: 20, amplitude: 1.3, waves: 2.8, depth: 0.6, separation: 0.75, organic: 0.5, swell: 0.5, spread: 0.15, spacing: 0.85, melt: 0.4, twist: 0.3, width: 0.55, thickness: 0.34, roll: 0.3, variation: 0.5 },
     look: {
       color: BRAND_STOPS.energy,
       density: 0.2,
@@ -130,6 +134,8 @@ const defaultShape = (): GlassShape => ({
   waves: 1.6,
   depth: 0.9,
   spread: 0.32,
+  spacing: 0.7,
+  melt: 0.5,
   separation: 1.2,
   organic: 0.6,
   swell: 0.5,
@@ -174,6 +180,8 @@ export const useGlass = create<GlassState>((set) => ({
       n.waves = clamp(n.waves, 0.25, 6);
       n.depth = clamp(n.depth, 0, 3);
       n.spread = clamp(n.spread, 0, 2);
+      n.spacing = clamp(n.spacing, 0, 1.5);
+      n.melt = clamp(n.melt, 0, 1);
       n.separation = clamp(n.separation, 0, 4);
       n.organic = clamp(n.organic, 0, 1);
       n.swell = clamp(n.swell, 0, 1);
