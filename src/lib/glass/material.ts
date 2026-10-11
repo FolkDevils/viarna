@@ -41,6 +41,7 @@ export function createRibbonUniforms(): RibbonUniforms {
     uSeparation: { value: 1 },
     uOrganic: { value: 0.5 },
     uSwell: { value: 0.5 },
+    uStrands: { value: 1 },
     uJitA: { value: new Float32Array(MAX_STRANDS * 4) },
     uJitB: { value: new Float32Array(MAX_STRANDS * 4) },
     uJitC: { value: new Float32Array(MAX_STRANDS * 4) },
